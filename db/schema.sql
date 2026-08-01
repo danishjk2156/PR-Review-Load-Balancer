@@ -1,15 +1,23 @@
 -- PR Review Load Balancer Schema
--- Run: psql $DATABASE_URL -f db/schema.sql
+-- Run: npm run db:setup
 
 BEGIN;
+
+CREATE TABLE IF NOT EXISTS teams (
+  id            SERIAL PRIMARY KEY,
+  name          VARCHAR(255) NOT NULL,
+  github_org    VARCHAR(100),            -- optional: auto-pull members from a GitHub org
+  created_by    INTEGER,                 -- references users(id), deferred since users table comes next
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
 
 CREATE TABLE IF NOT EXISTS users (
   id            SERIAL PRIMARY KEY,
   github_id     BIGINT UNIQUE NOT NULL,
   username      VARCHAR(255) NOT NULL,
   avatar_url    TEXT,
-  access_token  TEXT,            -- encrypted GitHub OAuth token
-  team_id       INTEGER,         -- nullable until assigned to a team
+  access_token  TEXT,            -- GitHub OAuth token (consider encrypting in production)
+  team_id       INTEGER REFERENCES teams(id) ON DELETE SET NULL,
   active        BOOLEAN DEFAULT TRUE,  -- false = PTO / out-of-office
   created_at    TIMESTAMPTZ DEFAULT NOW(),
   updated_at    TIMESTAMPTZ DEFAULT NOW()
@@ -20,7 +28,7 @@ CREATE TABLE IF NOT EXISTS repos (
   github_repo_id BIGINT UNIQUE NOT NULL,
   owner         VARCHAR(255) NOT NULL,
   name          VARCHAR(255) NOT NULL,
-  team_id       INTEGER REFERENCES users(team_id),
+  team_id       INTEGER REFERENCES teams(id) ON DELETE SET NULL,
   webhook_active BOOLEAN DEFAULT FALSE,
   created_at    TIMESTAMPTZ DEFAULT NOW()
 );
@@ -64,6 +72,9 @@ CREATE INDEX IF NOT EXISTS idx_repos_github_id
 
 CREATE INDEX IF NOT EXISTS idx_users_github_id
   ON users(github_id);
+
+CREATE INDEX IF NOT EXISTS idx_review_assignments_pr_id
+  ON review_assignments(pr_id);
 
 -- View: current review load per reviewer (not a table — always computed fresh)
 CREATE OR REPLACE VIEW review_load AS

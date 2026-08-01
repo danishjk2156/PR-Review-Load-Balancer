@@ -3,8 +3,7 @@
 -- Used by the assignment engine to pick the least-loaded eligible reviewer.
 --
 -- Ranking formula: (open_reviews * 2) + avg_turnaround_hours
---   - open_reviews weighted 2x because immediate capacity matters more
---   - avg_turnaround penalizes slow reviewers slightly
+-- Tie-breaking: open_review_count ASC, reviewer_id ASC
 --
 -- Filters:
 --   - Must be active (not PTO/out-of-office)
@@ -18,7 +17,7 @@ SELECT
   ROUND(avg_turnaround_hours::NUMERIC, 1) AS avg_turnaround_hours,
   (open_review_count * 2) + avg_turnaround_hours AS load_score,
   RANK() OVER (
-    ORDER BY (open_review_count * 2) + avg_turnaround_hours ASC
+    ORDER BY (open_review_count * 2) + avg_turnaround_hours ASC, open_review_count ASC, reviewer_id ASC
   ) AS rank
 FROM review_load
 WHERE active = TRUE

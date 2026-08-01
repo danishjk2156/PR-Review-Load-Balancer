@@ -13,6 +13,7 @@ const loadRankingSQL = fs.readFileSync(
 // GET /api/team/load — ranked reviewer load for the current user's team
 router.get('/load', requireAuth, async (req, res) => {
   try {
+    if (!req.user.team_id) return res.json([]);
     const result = await db.query(loadRankingSQL, [req.user.id, req.user.team_id]);
     res.json(result.rows);
   } catch (err) {
@@ -24,6 +25,7 @@ router.get('/load', requireAuth, async (req, res) => {
 // GET /api/team/stuck — PRs open >48h with no completed review
 router.get('/stuck', requireAuth, async (req, res) => {
   try {
+    if (!req.user.team_id) return res.json([]);
     const result = await db.query(`
       SELECT
         pr.id,

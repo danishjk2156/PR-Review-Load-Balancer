@@ -39,12 +39,17 @@ async function handlePROpened(payload) {
   if (prResult.rows.length === 0) return; // duplicate event
 
   const prId = prResult.rows[0].id;
-  const teamId = author?.team_id || repoRow.team_id;
-
-  // Only assign if we know which team to draw from
-  if (teamId && author) {
-    await assignReviewer(prId, author.id, teamId, repo.owner.login, repo.name, pr.number);
+  if (!author) {
+    console.warn(`⚠️ PR #${pr.number} author @${pr.user.login} (github_id: ${pr.user.id}) is not in database. Sign in via GitHub OAuth first.`);
+    return;
   }
+
+  if (!author.team_id) {
+    console.warn(`⚠️ User @${pr.user.login} is not assigned to any team (team_id is NULL). Assign a team_id to start balancing reviews.`);
+    return;
+  }
+
+  await assignReviewer(prId, author.id, author.team_id, repo.owner.login, repo.name, pr.number);
 }
 
 /**
@@ -93,4 +98,46 @@ async function handleReviewSubmitted(payload) {
   );
 }
 
-module.exports = { handlePROpened, handleReviewSubmitted };
+/**
+ * Handle pull_request.closed webhook event.
+ * 1. Update PR state to closed/merged
+ * 2. Complete any pending review assignments (prevents phantom load)
+ */
+async function handlePRClosed(payload) {
+  const { pull_request: pr, repository: repo } = payload;
+
+  // Find the repo
+  const repoResult = await db.query(
+    'SELECT id FROM repos WHERE github_repo_id = $1',
+    [repo.id]
+  );
+  if (repoResult.rows.length === 0) return;
+
+  const repoId = repoResult.rows[0].id;
+  const newState = pr.merged ? 'merged' : 'closed';
+
+  // Update PR state
+  const prResult = await db.query(
+    `UPDATE pull_requests
+     SET state = $1, closed_at = $2
+     WHERE github_pr_id = $3 AND repo_id = $4
+     RETURNING id`,
+    [newState, pr.closed_at || new Date().toISOString(), pr.number, repoId]
+  );
+
+  if (prResult.rows.length === 0) return;
+
+  const prId = prResult.rows[0].id;
+
+  // Complete any pending review assignments so reviewer load doesn't stay inflated
+  await db.query(
+    `UPDATE review_assignments
+     SET completed_at = NOW(), status = $1
+     WHERE pr_id = $2 AND completed_at IS NULL`,
+    [newState === 'merged' ? 'merged' : 'closed', prId]
+  );
+
+  console.log(`PR #${pr.number} ${newState} — cleared ${prResult.rowCount || 0} pending assignments`);
+}
+
+module.exports = { handlePROpened, handleReviewSubmitted, handlePRClosed };

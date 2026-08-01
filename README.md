@@ -169,7 +169,13 @@ prreviewloadbalancer/
 | `/api/team/load` | `GET` | Authenticated | Returns real-time ranked workload for all members of the logged-in user's team. |
 | `/api/team/stuck` | `GET` | Authenticated | Returns all open PRs for the user's team that have been open for > 48 hours without a completed review. |
 
-### 4. Health Check Route
+### 4. Interactive API Documentation (Swagger UI)
+
+| Endpoint | Method | Access | Description |
+|---|---|---|---|
+| `/api-docs` | `GET` | Public | Interactive OpenAPI 3.0 Swagger UI documentation for testing and inspecting all API endpoints. |
+
+### 5. Health Check Route
 
 | Endpoint | Method | Access | Description |
 |---|---|---|---|

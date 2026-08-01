@@ -10,14 +10,17 @@ const crypto = require('crypto');
 function verifySignature(payload, signature, secret) {
   if (!signature || !secret || !payload) return false;
 
+  const cleanSecret = String(secret).trim();
+  const cleanSig = String(signature).trim();
+
   try {
     const expected = 'sha256=' + crypto
-      .createHmac('sha256', secret)
+      .createHmac('sha256', cleanSecret)
       .update(payload)
       .digest('hex');
 
     const expectedBuffer = Buffer.from(expected);
-    const signatureBuffer = Buffer.from(signature);
+    const signatureBuffer = Buffer.from(cleanSig);
 
     if (expectedBuffer.length !== signatureBuffer.length) {
       return false;
