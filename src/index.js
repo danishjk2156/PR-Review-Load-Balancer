@@ -12,6 +12,7 @@ const db = require('../db');
 require('./auth-strategy');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // Enable CORS for frontend
 app.use(cors({
@@ -32,6 +33,7 @@ app.use(session({
   cookie: {
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     secure: config.nodeEnv === 'production',
+    sameSite: config.nodeEnv === 'production' ? 'none' : 'lax',
   },
 }));
 
