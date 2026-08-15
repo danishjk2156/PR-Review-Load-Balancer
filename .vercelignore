@@ -1,6 +1,6 @@
-src/
-db/
-tests/
-andrej-karpathy-skills/
+/src/
+/db/
+/tests/
+/andrej-karpathy-skills/
 .env
 .env.example
