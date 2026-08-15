@@ -37,10 +37,10 @@ export default function Navbar({ user, activeView, onViewChange, onLogout }) {
       <div className="navbar-right">
         <span className="pulse-dot" title="Live — polling every 30s" />
         <div className="user-info">
-          {user.avatar_url && (
+          {user?.avatar_url && (
             <img src={user.avatar_url} alt={user.username} className="user-avatar" />
           )}
-          <span>{user.username}</span>
+          <span>{user?.username}</span>
         </div>
         <button className="btn btn-sm btn-danger" onClick={onLogout}>
           Logout
